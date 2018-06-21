@@ -16,6 +16,13 @@ There are 3 use cases to test.
   * with normal user: [OK]
   * with root user: [OK]
 
+Tested Ruby.
+
+```
+<mock-chroot># rpm -q ruby
+ruby-2.5.1-93.fc29.x86_64
+```
+
 
 ## To test Rails from upstream
 
@@ -36,6 +43,41 @@ If we would test it on normal environment, that could be like this.
 
 ```
 <mock-chroot># su - mockbuild
+```
+
+```
+[mockbuild]$ gem env
+RubyGems Environment:
+  - RUBYGEMS VERSION: 2.7.6
+  - RUBY VERSION: 2.5.1 (2018-03-29 patchlevel 57) [x86_64-linux]
+  - INSTALLATION DIRECTORY: /usr/share/gems
+  - USER INSTALLATION DIRECTORY: /builddir/.gem/ruby
+  - RUBY EXECUTABLE: /usr/bin/ruby
+  - EXECUTABLE DIRECTORY: /usr/bin
+  - SPEC CACHE DIRECTORY: /builddir/.gem/specs
+  - SYSTEM CONFIGURATION DIRECTORY: /etc
+  - RUBYGEMS PLATFORMS:
+    - ruby
+    - x86_64-linux
+  - GEM PATHS:
+     - /usr/share/gems
+     - /builddir/.gem/ruby
+     - /usr/local/share/gems
+  - GEM CONFIGURATION:
+     - :update_sources => true
+     - :verbose => true
+     - :backtrace => false
+     - :bulk_threshold => 1000
+     - "gem" => "--user-install --bindir /builddir/bin"
+  - REMOTE SOURCES:
+     - https://rubygems.org/
+  - SHELL PATH:
+     - /usr/local/bin
+     - /usr/bin
+     - /usr/local/sbin
+     - /usr/sbin
+     - /builddir/.local/bin
+     - /builddir/bin
 ```
 
 Install `rdoc`. It seems that the error message is no problem.
@@ -86,6 +128,40 @@ ERROR:  While executing gem ... (NoMethodError)
 
 
 ### Test with root user
+
+```
+<mock-chroot># gem env
+RubyGems Environment:
+  - RUBYGEMS VERSION: 2.7.6
+  - RUBY VERSION: 2.5.1 (2018-03-29 patchlevel 57) [x86_64-linux]
+  - INSTALLATION DIRECTORY: /usr/share/gems
+  - USER INSTALLATION DIRECTORY: /builddir/.gem/ruby
+  - RUBY EXECUTABLE: /usr/bin/ruby
+  - EXECUTABLE DIRECTORY: /usr/bin
+  - SPEC CACHE DIRECTORY: /builddir/.gem/specs
+  - SYSTEM CONFIGURATION DIRECTORY: /etc
+  - RUBYGEMS PLATFORMS:
+    - ruby
+    - x86_64-linux
+  - GEM PATHS:
+     - /usr/share/gems
+     - /builddir/.gem/ruby
+     - /usr/local/share/gems
+  - GEM CONFIGURATION:
+     - :update_sources => true
+     - :verbose => true
+     - :backtrace => false
+     - :bulk_threshold => 1000
+     - "gem" => "--install-dir=/usr/local/share/gems --bindir /usr/local/bin"
+  - REMOTE SOURCES:
+     - https://rubygems.org/
+  - SHELL PATH:
+     - /usr/local/sbin
+     - /usr/bin
+     - /bin
+     - /usr/sbin
+     - /sbin
+```
 
 ```
 <mock-chroot># gem install rdoc
@@ -243,7 +319,6 @@ Access to http://0.0.0.0:3000/
 ### Test with root user
 
 ```
-
 <mock-chroot># rails new app --skip-bundle
 <mock-chroot># cd app
 <mock-chroot># sed -i '/chromedriver-helper/ s/^/#/' Gemfile
