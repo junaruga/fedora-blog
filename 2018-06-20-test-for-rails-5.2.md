@@ -7,8 +7,8 @@ I referred this document [1] "How To Test" section for the testing use cases.
 There are 3 use cases to test.
 
 * To test Rails from upstream
-  * with normal user: [ERROR]
-  * with root user: [ERROR]
+  * with normal user: [OK]
+  * with root user: [OK]
 * To test only Rails itself
   * with normal user: [OK]
   * with root user: [OK]
@@ -28,15 +28,36 @@ ruby-2.5.1-93.fc29.x86_64
 
 ### Pre-condition
 
-```
-$ mock -r fedora-rawhide-x86_64 --scrub=all
-$ mock -r fedora-rawhide-x86_64 -i ruby-devel sqlite-devel nodejs zlib-devel
-```
-
-If we would test it on normal environment, that could be like this.
+Check if your mock setting install_weak_deps is True(1).
+See `man dnf.cnf` install_weak_deps for detail.
 
 ```
-# dnf install ruby-devel sqlite-devel nodejs zlib-devel
+$ vi /etc/mock/default.cfg
+...
+[main]
+...
+install_weak_deps=1
+...
+```
+
+```
+$ mock --scrub=all
+$ mock -i dnf
+$ mock shell
+```
+
+Then on mock environment.
+
+```
+<mock-chroot># dnf install ruby-devel sqlite-devel nodejs zlib-devel
+```
+
+Check `bigdecimal` that is a weak dependency of ruby is intalled.
+It is required to run Rails server.
+
+```
+# rpm -q rubygem-bigdecimal
+rubygem-bigdecimal-1.3.4-93.fc29.x86_64
 ```
 
 ### Test with normal user
@@ -80,14 +101,16 @@ RubyGems Environment:
      - /builddir/bin
 ```
 
-Install `rdoc`. It seems that the error message is no problem.
+Install `rdoc`.
 
 ```
 [mockbuild]$ gem install rdoc
 Fetching: rdoc-6.0.4.gem (100%)
 Successfully installed rdoc-6.0.4
-ERROR:  While executing gem ... (NoMethodError)
-    undefined method `reset' for RDoc::TopLevel:Class
+Parsing documentation for rdoc-6.0.4
+Installing ri documentation for rdoc-6.0.4
+Done installing documentation for rdoc after 4 seconds
+1 gem installed
 ```
 
 ```
@@ -107,24 +130,12 @@ ERROR:  While executing gem ... (NoMethodError)
 [mockbuild]$ cd app
 [mockbuild]$ rails s
 ...
-	  1: from /builddir/.gem/ruby/gems/activesupport-5.2.0/lib/active_support/dependencies.rb:283:in `block in require'
-/builddir/.gem/ruby/gems/bootsnap-1.3.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:32:in `require': cannot load such file -- bigdecimal (LoadError)
-```
-=> error.
-
-```
-[mockbuild]$ gem install bigdecimal
-
-[mockbuild]$ gem which bigdecimal
-/builddir/.gem/ruby/extensions/x86_64-linux/2.5.0/bigdecimal-1.3.5/bigdecimal.so
-
-[mockbuild]$ rails s
-...
-	  1: from /builddir/.gem/ruby/gems/activesupport-5.2.0/lib/active_support/dependencies.rb:283:in `block in require'
-/builddir/.gem/ruby/gems/bootsnap-1.3.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:32:in `require': cannot load such file -- bigdecimal (LoadError)
+* Listening on tcp://0.0.0.0:3000
+Use Ctrl-C to stop
 ```
 
-=> error.
+Access to http://0.0.0.0:3000/
+=> ok
 
 
 ### Test with root user
@@ -190,25 +201,12 @@ Rails 5.2.0
 <mock-chroot># cd app
 <mock-chroot># /usr/local/bin/rails s
 ...
-	  1: from /usr/local/share/gems/gems/activesupport-5.2.0/lib/active_support/dependencies.rb:283:in `block in require'
-/usr/share/gems/gems/bootsnap-1.3.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:32:in `require': cannot load such file -- bigdecimal (LoadError)
+* Listening on tcp://0.0.0.0:3000
+Use Ctrl-C to stop
 ```
 
-=> error.
-
-```
-<mock-chroot># gem install bigdecimal
-
-<mock-chroot># gem which bigdecimal
-/usr/local/lib64/gems/ruby/bigdecimal-1.3.5/bigdecimal.so
-
-<mock-chroot># /usr/local/bin/rails s
-...
-	  1: from /usr/local/share/gems/gems/activesupport-5.2.0/lib/active_support/dependencies.rb:283:in `block in require'
-/usr/share/gems/gems/bootsnap-1.3.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:32:in `require': cannot load such file -- bigdecimal (LoadError)
-```
-
-=> error.
+Access to http://0.0.0.0:3000/
+=> ok
 
 
 ## To test only Rails itself
@@ -216,21 +214,16 @@ Rails 5.2.0
 ### Pre-condition
 
 ```
-$ mock -r fedora-rawhide-x86_64 --scrub=all
-$ mock -r fedora-rawhide-x86_64 -i rubygem-rails
+$ mock --scrub=all
+$ mock -i dnf
+$ mock shell
 ```
 
-Install necessary RPM packages to build dependency packages in following process `bundle install` of `rails new app`.
+Then on mock environment.
 
 ```
-$ mock -r fedora-rawhide-x86_64 -i ruby-devel sqlite-devel nodejs zlib-devel
-```
-
-If we would test it on normal environment, that could be like this.
-
-```
-# dnf install rubygem-rails
-# dnf install ruby-devel sqlite-devel nodejs zlib-devel
+<mock-chroot># dnf install rubygem-rails
+<mock-chroot># dnf install ruby-devel sqlite-devel nodejs zlib-devel
 ```
 
 ### Test with normal user
@@ -243,6 +236,9 @@ Below command is necessary. [2]
 
 ```
 [mockbuild]$ export GEM_HOME="$(ruby -e 'print Gem.user_dir')"
+
+[mockbuild]$ env | grep GEM_HOME
+GEM_HOME=/builddir/.gem/ruby
 ```
 
 ```
@@ -282,18 +278,17 @@ Access to http://0.0.0.0:3000/
 As I tested on mock chroot environment this time, I installed necessary RPM packages like this.
 
 ```
-$ mock -r fedora-rawhide-x86_64 --scrub=all
-$ mock -r fedora-rawhide-x86_64 --dnf-cmd group install 'Ruby on Rails'
-$ mock -r fedora-rawhide-x86_64 -i rubygem-bootsnap
-$ mock -r fedora-rawhide-x86_64 -i rubygem-mini_magick
+$ mock --scrub=all
+$ mock -i dnf
+$ mock shell
 ```
 
-If we would test it on normal environment, that could be like this.
+Then on mock environment.
 
 ```
-# dnf group install 'Ruby on Rails'
-# dnf install rubygem-bootsnap
-# dnf install rubygem-mini_magick
+<mock-chroot># dnf group install 'Ruby on Rails'
+<mock-chroot># dnf install rubygem-bootsnap
+<mock-chroot># dnf install rubygem-mini_magick
 ```
 
 As `rubygem-bootsnap` and `rubygem-mini_magick` are needed to add "Ruby on Rails" group, I sent pull-request https://pagure.io/fedora-comps/pull-request/286 .
