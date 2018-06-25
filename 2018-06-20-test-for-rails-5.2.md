@@ -287,12 +287,7 @@ Then on mock environment.
 
 ```
 <mock-chroot># dnf group install 'Ruby on Rails'
-<mock-chroot># dnf install rubygem-bootsnap
-<mock-chroot># dnf install rubygem-mini_magick
 ```
-
-As `rubygem-bootsnap` and `rubygem-mini_magick` are needed to add "Ruby on Rails" group, I sent pull-request https://pagure.io/fedora-comps/pull-request/286 .
-
 
 ### Test with normal user
 
